@@ -1,0 +1,92 @@
+import pymysql.cursors
+import hashlib
+
+connection = pymysql.connect(host='dbinstance.ct0jj0n9ijm8.us-east-1.rds.amazonaws.com',
+                            user='masterusername',
+                            password='masterpassword',
+                            db='BloodBank',
+                            charset='utf8mb4',
+                            cursorclass=pymysql.cursors.DictCursor)
+                            
+def lambda_handler(event, context):
+    # Collect the arguments sent by Post Request
+    userName = event['userName']
+    userPassword = event['userPassword']
+    userType = event['userType']
+    userLat = event['userLat']
+    userLong = event['userLong']
+    
+    # print("username from front is "+ userName)
+    # print("pass from front is "+ userPassword)
+    # print("type from front is "+ userType)
+    
+    h = hashlib.new('md5')
+    h.update(userPassword)
+    userPassworHash = str(h.hexdigest())
+    
+    # print type(userPassworHash)
+    # print type(h.digest())
+    # print("userpasshash is " + userPassworHash)
+    
+    cursor = connection.cursor()
+    with connection.cursor() as cursor:
+        sql = "SELECT UserName FROM UserLoginDetails WHERE UserName = '" + userName + "'"
+        print sql
+        cursor.execute(sql)
+        result = cursor.fetchone()
+        
+        # Check whether useranme exists or not!
+        if result is not None:
+            return "This UserName already exists"
+        
+        sql = "INSERT INTO UserLoginDetails VALUES ('" + userName + "' , '" + userPassworHash + "' , '" + userType + "')"
+        print sql
+        cursor.execute(sql)
+        result = cursor.fetchone()
+        print result
+        
+        sql = "INSERT INTO UserDetails VALUES ('" + userName + "' , " + str(userLat) + " , " + str(userLong) + ")"
+        print sql
+        cursor.execute(sql)
+        result = cursor.fetchone()
+        print result
+        
+        return "Success"
+
+USE BloodBank;
+-- REATE TABLE UserLoginDetails (UserName nvarchar(64), UserPassword nvarchar(64), UserType nvarchar(16))
+
+INSERT INTO UserLoginDetails VALUES ('username4', '819b0643d6b89dc9b579fdfc9094f28e', 'Hospital');
+-- , ('username2', 'password2', 'Individual')
+
+Select * from BloodBank.UserLoginDetails;
+Select * from BloodBank.UserDetails;
+
+
+CREATE TABLE `UserLoginDetails` (
+  `UserName` varchar(64) CHARACTER SET utf8 NOT NULL,
+  `UserPassword` varchar(32) CHARACTER SET utf8 DEFAULT NULL,
+  `UserType` varchar(16) CHARACTER SET utf8 DEFAULT NULL,
+  KEY `UserLoginDetails_UserName` (`UserName`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+CREATE TABLE `UserDetails` (
+  `UserName` varchar(64) DEFAULT NULL,
+  `UserLat` decimal(9,6) DEFAULT NULL,
+  `UserLong` decimal(9,6) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+{
+    "userName":"test1",
+    "firstName":"FirstName",
+    "lastName":"LAstName",
+    "userPassword":"password34",
+    "userLat":67.8765,
+    "userLong":123.498576,
+    "userType": "Individual"
+}
+
+
+
+
